@@ -136,7 +136,7 @@ credential in the launcher distribution.
    ```powershell
    npm run verify:neoforge-staging -- `
      --server-root C:\path\to\MMORPG `
-     --launcher-dir "$env:APPDATA\Helios Launcher" `
+     --launcher-dir "$env:APPDATA\VakenLauncher" `
      --data-dir "$env:APPDATA\.helioslauncher" `
      --server-id youer-main
    ```

@@ -21,7 +21,7 @@ compatibility.
 | AuthMe bridge runtime | MMORPG server loaded AuthMe 6.0.0 Legacy, PacketEvents 2.13.0, and HeliosAuthBridge 0.1.0; signed loopback login returned the expected generic failure | Live pass |
 | AuthMe automatic `forceLogin` | Public API call runs on the Bukkit main thread and the bridge waits for AuthMe's asynchronous completion; the live server reported `completed AuthMe force-login` | Live pass |
 | Thai/English UI | Both complete EJS trees render without missing values | Automated pass |
-| Lint, unit tests, dependency audit, Windows installer | ESLint 10 passes; 67 Node tests and 4 Java bridge tests pass; full `npm audit` reports 0 vulnerabilities; Electron 44 `safeStorage` and the x64 NSIS installer build pass | Automated pass |
+| Lint, unit tests, dependency audit, Windows installer | ESLint 10 passes; 68 Node tests and 4 Java bridge tests pass; full `npm audit` reports 0 vulnerabilities; Electron 44 `safeStorage` and the x64 NSIS installer build pass | Automated pass |
 | Public distribution readiness | The staging catalog and server address still use `127.0.0.1`; production distribution/auth HTTPS URLs, a public server hostname, and Windows code signing are not configured | Not production-ready |
 | Player launching without a ticket cannot impersonate another account | Ticket-bound UUID/name checks; a live no-ticket connection remained unauthenticated and AuthMe issued a login-timeout kick | Live fail-closed pass |
 | Backend or bridge unavailable | Backend client rejects transport failure; a live companion/bridge-unavailable run left AuthMe unauthenticated and ended in its login-timeout kick | Automated backend-down and live bridge-path fail-closed pass |

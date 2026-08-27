@@ -9,7 +9,7 @@ const AdmZip = require('adm-zip')
 const GRADLE_VERSION = '9.2.1'
 const GRADLE_SHA256 = '72f44c9f8ebcb1af43838f45ee5c4aa9c5444898b3468ab3f4af7b6076c5bc3f'
 const GRADLE_URL = `https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip`
-const cacheRoot = path.join(os.tmpdir(), 'helios-launcher-build-tools')
+const cacheRoot = path.join(os.tmpdir(), 'vaken-launcher-build-tools')
 const gradleRoot = path.join(cacheRoot, `gradle-${GRADLE_VERSION}`)
 const gradleCommand = path.join(gradleRoot, 'bin', process.platform === 'win32' ? 'gradle.bat' : 'gradle')
 const modRoot = path.resolve(__dirname, '..', 'services', 'neoforge-sso-companion')

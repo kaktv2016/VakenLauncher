@@ -1,6 +1,6 @@
 <p align="center"><img src="./app/assets/images/SealCircle.png" width="150px" height="150px" alt="aventium softworks"></p>
 
-<h1 align="center">Helios Launcher</h1>
+<h1 align="center">VakenLauncher</h1>
 
 <em><h5 align="center">(formerly Electron Launcher)</h5></em>
 
@@ -53,10 +53,10 @@ If you download from the [Releases](https://github.com/dscalzi/HeliosLauncher/re
 
 | Platform | File |
 | -------- | ---- |
-| Windows x64 | `Helios-Launcher-setup-VERSION.exe` |
-| macOS x64 | `Helios-Launcher-setup-VERSION-x64.dmg` |
-| macOS arm64 | `Helios-Launcher-setup-VERSION-arm64.dmg` |
-| Linux x64 | `Helios-Launcher-setup-VERSION.AppImage` |
+| Windows x64 | `VakenLauncher-setup-VERSION.exe` |
+| macOS x64 | `VakenLauncher-setup-VERSION-x64.dmg` |
+| macOS arm64 | `VakenLauncher-setup-VERSION-arm64.dmg` |
+| Linux x64 | `VakenLauncher-setup-VERSION.AppImage` |
 
 ## Console
 
@@ -91,7 +91,7 @@ This section details the setup of a basic developmentment environment.
 
 ```console
 > git clone https://github.com/dscalzi/HeliosLauncher.git
-> cd HeliosLauncher
+> cd VakenLauncher
 > npm install
 ```
 

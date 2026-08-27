@@ -9,7 +9,7 @@ const AdmZip = require('adm-zip')
 const MAVEN_VERSION = '3.9.16'
 const MAVEN_SHA512 = 'ed41650d42485cfc243fad22158caf9cbb5dc408ce7a09ddb94dd42a019de929ca43065bfa450612cf12bf78b5cafa3884b96c090de326ff590448c933454af3'
 const MAVEN_URL = `https://downloads.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.zip`
-const cacheRoot = path.join(os.tmpdir(), 'helios-launcher-build-tools')
+const cacheRoot = path.join(os.tmpdir(), 'vaken-launcher-build-tools')
 const mavenRoot = path.join(cacheRoot, `apache-maven-${MAVEN_VERSION}`)
 const mavenCommand = path.join(mavenRoot, 'bin', process.platform === 'win32' ? 'mvn.cmd' : 'mvn')
 const bridgeRoot = path.resolve(__dirname, '..', 'services', 'youer-authme-bridge')
