@@ -1,0 +1,7 @@
+name: HeliosAuthBridge
+version: 0.1.0
+main: com.helios.authbridge.HeliosAuthBridgePlugin
+api-version: '1.21'
+authors: [Helios Launcher]
+description: Loopback-only HTTPS bridge from the Helios authentication backend to AuthMe.
+depend: [AuthMe]

@@ -1,0 +1,13 @@
+{
+    "name": "helios-auth-backend",
+    "version": "0.1.0",
+    "private": true,
+    "description": "HTTPS authentication boundary between Helios Launcher and the Youer/AuthMe bridge",
+    "main": "src/server.js",
+    "scripts": {
+        "start": "node src/server.js"
+    },
+    "engines": {
+        "node": ">=22.13.0"
+    }
+}

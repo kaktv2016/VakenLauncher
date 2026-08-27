@@ -9,17 +9,19 @@ const os                    = require('os')
 const path                  = require('path')
 
 const ConfigManager            = require('./configmanager')
+const {
+    isNeoForgeLoader,
+    validateModLoaderTopology,
+    validateNeoForgeManifest
+} = require('./neoforge')
 
 const logger = LoggerUtil.getLogger('ProcessBuilder')
 
 
 /**
- * Only forge and fabric are top level mod loaders.
- * 
- * Forge 1.13+ launch logic is similar to fabrics, for now using usingFabricLoader flag to
- * change minor details when needed.
- * 
- * Rewrite of this module may be needed in the future.
+ * Forge, Fabric, and NeoForge are supported top-level mod loaders. NeoForge
+ * follows its own version manifest and discovers mods from the instance mods
+ * directory; it must never receive Forge's removed --fml.modLists arguments.
  */
 class ProcessBuilder {
 
@@ -38,6 +40,7 @@ class ProcessBuilder {
 
         this.usingLiteLoader = false
         this.usingFabricLoader = false
+        this.usingNeoForgeLoader = false
         this.llPath = null
     }
     
@@ -50,8 +53,14 @@ class ProcessBuilder {
         process.throwDeprecation = true
         this.setupLiteLoader()
         logger.info('Using liteloader:', this.usingLiteLoader)
+        const modLoader = validateModLoaderTopology(this.server.modules)
         this.usingFabricLoader = this.server.modules.some(mdl => mdl.rawModule.type === Type.Fabric)
         logger.info('Using fabric loader:', this.usingFabricLoader)
+        this.usingNeoForgeLoader = isNeoForgeLoader(modLoader)
+        logger.info('Using NeoForge loader:', this.usingNeoForgeLoader)
+        if(this.usingNeoForgeLoader) {
+            validateNeoForgeManifest(this.modManifest, this.server.rawServer.minecraftVersion)
+        }
         const modObj = this.resolveModConfiguration(ConfigManager.getModConfiguration(this.server.rawServer.id).mods, this.server.modules)
         
         // Mod list below 1.13
@@ -66,14 +75,20 @@ class ProcessBuilder {
         const uberModArr = modObj.fMods.concat(modObj.lMods)
         let args = this.constructJVMArguments(uberModArr, tempNativePath)
 
-        if(mcVersionAtLeast('1.13', this.server.rawServer.minecraftVersion)){
+        if(mcVersionAtLeast('1.13', this.server.rawServer.minecraftVersion) && !this.usingNeoForgeLoader){
             //args = args.concat(this.constructModArguments(modObj.fMods))
             args = args.concat(this.constructModList(modObj.fMods))
         }
 
-        // Hide access token
+        // Hide the token passed to Minecraft. Local Helios JWTs are never
+        // needed by the offline-mode game client and are replaced with a
+        // non-secret placeholder before the process is spawned.
         const loggableArgs = [...args]
-        loggableArgs[loggableArgs.findIndex(x => x === this.authUser.accessToken)] = '**********'
+        const minecraftAccessToken = this._minecraftAccessToken()
+        const accessTokenIndex = loggableArgs.findIndex(x => x === minecraftAccessToken)
+        if(accessTokenIndex !== -1) {
+            loggableArgs[accessTokenIndex] = '**********'
+        }
 
         logger.info('Launch Arguments:', loggableArgs)
 
@@ -118,6 +133,10 @@ class ProcessBuilder {
      */
     static getClasspathSeparator() {
         return process.platform === 'win32' ? ';' : ':'
+    }
+
+    _minecraftAccessToken() {
+        return '0'
     }
 
     /**
@@ -183,7 +202,7 @@ class ProcessBuilder {
 
         for(let mdl of mdls){
             const type = mdl.rawModule.type
-            if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod){
+            if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod || type === Type.NeoForgeMod){
                 const o = !mdl.getRequired().value
                 const e = ProcessBuilder.isModEnabled(modCfg[mdl.getVersionlessMavenIdentifier()], mdl.getRequired())
                 if(!o || (o && e)){
@@ -195,7 +214,7 @@ class ProcessBuilder {
                             continue
                         }
                     }
-                    if(type === Type.ForgeMod || type === Type.FabricMod){
+                    if(type === Type.ForgeMod || type === Type.FabricMod || type === Type.NeoForgeMod){
                         fMods.push(mdl)
                     } else {
                         lMods.push(mdl)
@@ -304,6 +323,9 @@ class ProcessBuilder {
      * @param {Array.<Object>} mods An array of mods to add to the mod list.
      */
     constructModList(mods) {
+        if(this.usingNeoForgeLoader) {
+            return []
+        }
         const writeBuffer = mods.map(mod => {
             return this.usingFabricLoader ? mod.getPath() : mod.getExtensionlessMavenIdentifier()
         }).join('\n')
@@ -404,7 +426,7 @@ class ProcessBuilder {
         const argDiscovery = /\${*(.*)}/
 
         // JVM Arguments First
-        let args = this.vanillaManifest.arguments.jvm
+        let args = [...this.vanillaManifest.arguments.jvm]
 
         // Debug securejarhandler
         // args.push('-Dbsl.debug=true')
@@ -507,10 +529,10 @@ class ProcessBuilder {
                             val = this.authUser.uuid.trim()
                             break
                         case 'auth_access_token':
-                            val = this.authUser.accessToken
+                            val = this._minecraftAccessToken()
                             break
                         case 'user_type':
-                            val = this.authUser.type === 'microsoft' ? 'msa' : 'mojang'
+                            val = 'legacy'
                             break
                         case 'version_type':
                             val = this.vanillaManifest.type
@@ -545,7 +567,7 @@ class ProcessBuilder {
         this._processAutoConnectArg(args)
         
 
-        // Forge Specific Arguments
+        // Mod-loader-specific game arguments from the installed manifest.
         args = args.concat(this.modManifest.arguments.game)
 
         // Filter null values
@@ -591,10 +613,10 @@ class ProcessBuilder {
                         val = this.authUser.uuid.trim()
                         break
                     case 'auth_access_token':
-                        val = this.authUser.accessToken
+                        val = this._minecraftAccessToken()
                         break
                     case 'user_type':
-                        val = this.authUser.type === 'microsoft' ? 'msa' : 'mojang'
+                        val = 'legacy'
                         break
                     case 'user_properties': // 1.8.9 and below.
                         val = '{}'
@@ -677,7 +699,8 @@ class ProcessBuilder {
 
         if(!mcVersionAtLeast('1.17', this.server.rawServer.minecraftVersion) || this.usingFabricLoader) {
             // Add the version.jar to the classpath.
-            // Must not be added to the classpath for Forge 1.17+.
+            // Forge and NeoForge 1.17+ supply a transformed client artifact.
+            // Adding vanilla as well creates two modules exporting Minecraft.
             const version = this.vanillaManifest.id
             cpArgs.push(path.join(this.commonDir, 'versions', version, version + '.jar'))
         }
@@ -836,11 +859,18 @@ class ProcessBuilder {
         const mdls = this.server.modules
         let libs = {}
 
-        // Locate Forge/Fabric/Libraries
+        // Locate Forge/Fabric/NeoForge/Libraries
         for(let mdl of mdls){
             const type = mdl.rawModule.type
-            if(type === Type.ForgeHosted || type === Type.Fabric || type === Type.Library){
-                libs[mdl.getVersionlessMavenIdentifier()] = mdl.getPath()
+            if(type === Type.ForgeHosted || type === Type.Forge || type === Type.Fabric || type === Type.NeoForge || type === Type.Library){
+                // The NeoForge client artifact is an installer-generated input
+                // consumed by FML through -DlibraryDirectory. Putting it on the
+                // JVM classpath alongside the universal artifact creates two
+                // modules named `neoforge` and prevents the module layer from
+                // resolving. Other loader types retain the original behavior.
+                if(type !== Type.NeoForge) {
+                    libs[mdl.getVersionlessMavenIdentifier()] = mdl.getPath()
+                }
                 if(mdl.subModules.length > 0){
                     const res = this._resolveModuleLibraries(mdl)
                     libs = {...libs, ...res}
@@ -850,7 +880,7 @@ class ProcessBuilder {
 
         //Check for any libraries in our mod list.
         for(let i=0; i<mods.length; i++){
-            if(mods.sub_modules != null){
+            if(mods[i].subModules.length > 0){
                 const res = this._resolveModuleLibraries(mods[i])
                 libs = {...libs, ...res}
             }

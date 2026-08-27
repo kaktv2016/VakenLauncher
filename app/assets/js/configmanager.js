@@ -2,6 +2,8 @@ const fs   = require('fs-extra')
 const { LoggerUtil } = require('helios-core')
 const os   = require('os')
 const path = require('path')
+const { protectConfig, protectSecret, unprotectConfig, unprotectSecret } = require('./securetokenstore')
+const { retainLocalAuthentication } = require('./localaccountconfig')
 
 const logger = LoggerUtil.getLogger('ConfigManager')
 
@@ -94,7 +96,6 @@ const DEFAULT_CONFIG = {
         content: null,
         dismissed: false
     },
-    clientToken: null,
     selectedServer: null, // Resolved
     selectedAccount: null,
     authenticationDatabase: {},
@@ -110,7 +111,13 @@ let config = null
  * Save the current configuration to a file.
  */
 exports.save = function(){
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'UTF-8')
+    const protectedConfig = protectConfig(config, protectSecret)
+    const temporaryPath = `${configPath}.tmp`
+    fs.writeFileSync(temporaryPath, JSON.stringify(protectedConfig, null, 4), {
+        encoding: 'UTF-8',
+        mode: 0o600
+    })
+    fs.renameSync(temporaryPath, configPath)
 }
 
 /**
@@ -129,24 +136,26 @@ exports.load = function(){
             fs.moveSync(configPathLEGACY, configPath)
         } else {
             doLoad = false
-            config = DEFAULT_CONFIG
+            config = JSON.parse(JSON.stringify(DEFAULT_CONFIG))
             exports.save()
         }
     }
     if(doLoad){
-        let doValidate = false
+        let storedConfig
         try {
-            config = JSON.parse(fs.readFileSync(configPath, 'UTF-8'))
-            doValidate = true
+            storedConfig = JSON.parse(fs.readFileSync(configPath, 'UTF-8'))
         } catch (err){
             logger.error(err)
             logger.info('Configuration file contains malformed JSON or is corrupt.')
             logger.info('Generating a new configuration file.')
             fs.ensureDirSync(path.join(configPath, '..'))
-            config = DEFAULT_CONFIG
+            config = JSON.parse(JSON.stringify(DEFAULT_CONFIG))
             exports.save()
         }
-        if(doValidate){
+        if(storedConfig != null){
+            // Decryption errors intentionally propagate. Never replace an existing
+            // account database when its platform-protected secrets cannot be read.
+            config = retainLocalAuthentication(unprotectConfig(storedConfig, unprotectSecret).config)
             config = validateKeySet(DEFAULT_CONFIG, config)
             exports.save()
         }
@@ -256,32 +265,13 @@ exports.getInstanceDirectory = function(){
 }
 
 /**
- * Retrieve the launcher's Client Token.
- * There is no default client token.
- * 
- * @returns {string} The launcher's Client Token.
- */
-exports.getClientToken = function(){
-    return config.clientToken
-}
-
-/**
- * Set the launcher's Client Token.
- * 
- * @param {string} clientToken The launcher's new Client Token.
- */
-exports.setClientToken = function(clientToken){
-    config.clientToken = clientToken
-}
-
-/**
  * Retrieve the ID of the selected serverpack.
  * 
  * @param {boolean} def Optional. If true, the default value will be returned.
  * @returns {string} The ID of the selected serverpack.
  */
 exports.getSelectedServer = function(def = false){
-    return !def ? config.selectedServer : DEFAULT_CONFIG.clientToken
+    return !def ? config.selectedServer : DEFAULT_CONFIG.selectedServer
 }
 
 /**
@@ -314,91 +304,48 @@ exports.getAuthAccount = function(uuid){
 }
 
 /**
- * Update the access token of an authenticated mojang account.
- * 
- * @param {string} uuid The uuid of the authenticated account.
- * @param {string} accessToken The new Access Token.
- * 
- * @returns {Object} The authenticated account object created by this action.
+ * Add a server-local account. The UUID is generated and persisted by the
+ * authentication backend, never derived from the username by the launcher.
+ *
+ * @param {Object} account Stable identity returned by the backend.
+ * @param {Object} tokens Short-lived access and rotating refresh tokens.
+ * @returns {Object} The authenticated local account.
  */
-exports.updateMojangAuthAccount = function(uuid, accessToken){
-    config.authenticationDatabase[uuid].accessToken = accessToken
-    config.authenticationDatabase[uuid].type = 'mojang' // For gradual conversion.
-    return config.authenticationDatabase[uuid]
-}
-
-/**
- * Adds an authenticated mojang account to the database to be stored.
- * 
- * @param {string} uuid The uuid of the authenticated account.
- * @param {string} accessToken The accessToken of the authenticated account.
- * @param {string} username The username (usually email) of the authenticated account.
- * @param {string} displayName The in game name of the authenticated account.
- * 
- * @returns {Object} The authenticated account object created by this action.
- */
-exports.addMojangAuthAccount = function(uuid, accessToken, username, displayName){
-    config.selectedAccount = uuid
-    config.authenticationDatabase[uuid] = {
-        type: 'mojang',
-        accessToken,
-        username: username.trim(),
-        uuid: uuid.trim(),
-        displayName: displayName.trim()
-    }
-    return config.authenticationDatabase[uuid]
-}
-
-/**
- * Update the tokens of an authenticated microsoft account.
- * 
- * @param {string} uuid The uuid of the authenticated account.
- * @param {string} accessToken The new Access Token.
- * @param {string} msAccessToken The new Microsoft Access Token
- * @param {string} msRefreshToken The new Microsoft Refresh Token
- * @param {date} msExpires The date when the microsoft access token expires
- * @param {date} mcExpires The date when the mojang access token expires
- * 
- * @returns {Object} The authenticated account object created by this action.
- */
-exports.updateMicrosoftAuthAccount = function(uuid, accessToken, msAccessToken, msRefreshToken, msExpires, mcExpires) {
-    config.authenticationDatabase[uuid].accessToken = accessToken
-    config.authenticationDatabase[uuid].expiresAt = mcExpires
-    config.authenticationDatabase[uuid].microsoft.access_token = msAccessToken
-    config.authenticationDatabase[uuid].microsoft.refresh_token = msRefreshToken
-    config.authenticationDatabase[uuid].microsoft.expires_at = msExpires
-    return config.authenticationDatabase[uuid]
-}
-
-/**
- * Adds an authenticated microsoft account to the database to be stored.
- * 
- * @param {string} uuid The uuid of the authenticated account.
- * @param {string} accessToken The accessToken of the authenticated account.
- * @param {string} name The in game name of the authenticated account.
- * @param {date} mcExpires The date when the mojang access token expires
- * @param {string} msAccessToken The microsoft access token
- * @param {string} msRefreshToken The microsoft refresh token
- * @param {date} msExpires The date when the microsoft access token expires
- * 
- * @returns {Object} The authenticated account object created by this action.
- */
-exports.addMicrosoftAuthAccount = function(uuid, accessToken, name, mcExpires, msAccessToken, msRefreshToken, msExpires) {
-    config.selectedAccount = uuid
-    config.authenticationDatabase[uuid] = {
-        type: 'microsoft',
-        accessToken,
-        username: name.trim(),
-        uuid: uuid.trim(),
-        displayName: name.trim(),
-        expiresAt: mcExpires,
-        microsoft: {
-            access_token: msAccessToken,
-            refresh_token: msRefreshToken,
-            expires_at: msExpires
+exports.addLocalAuthAccount = function(account, tokens) {
+    config.selectedAccount = account.uuid
+    config.authenticationDatabase[account.uuid] = {
+        type: 'local',
+        accessToken: tokens.accessToken,
+        username: account.username.trim(),
+        uuid: account.uuid.trim(),
+        displayName: account.displayName.trim(),
+        expiresAt: tokens.accessExpiresAt,
+        tokens: {
+            refreshToken: tokens.refreshToken,
+            refreshExpiresAt: tokens.refreshExpiresAt,
+            sessionId: tokens.sessionId
         }
     }
-    return config.authenticationDatabase[uuid]
+    return config.authenticationDatabase[account.uuid]
+}
+
+/**
+ * Update a local account after refresh-token rotation.
+ *
+ * @param {string} uuid Stable backend account UUID.
+ * @param {Object} tokens Replacement access and refresh tokens.
+ * @returns {Object} The updated account.
+ */
+exports.updateLocalAuthAccount = function(uuid, tokens) {
+    const account = config.authenticationDatabase[uuid]
+    account.accessToken = tokens.accessToken
+    account.expiresAt = tokens.accessExpiresAt
+    account.tokens = {
+        refreshToken: tokens.refreshToken,
+        refreshExpiresAt: tokens.refreshExpiresAt,
+        sessionId: tokens.sessionId
+    }
+    return account
 }
 
 /**
@@ -419,7 +366,6 @@ exports.removeAuthAccount = function(uuid){
                 config.selectedAccount = keys[0]
             } else {
                 config.selectedAccount = null
-                config.clientToken = null
             }
         }
         return true

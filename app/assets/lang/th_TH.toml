@@ -1,0 +1,73 @@
+[ejs.login]
+loginCancelText = "ยกเลิก"
+loginSubheader = "บัญชีเซิร์ฟเวอร์"
+loginMode = "เข้าสู่ระบบ"
+registerMode = "สมัครสมาชิก"
+loginUsernameError = "* ใช้ตัวอักษร ตัวเลข หรือ _ จำนวน 3-16 ตัว"
+loginUsernamePlaceholder = "ชื่อผู้เล่น"
+loginPasswordError = "* กรุณากรอกรหัสผ่าน"
+loginPasswordPlaceholder = "รหัสผ่าน"
+loginConfirmError = "* รหัสผ่านต้องตรงกัน"
+loginConfirmPlaceholder = "ยืนยันรหัสผ่าน"
+loginEmailError = "* อีเมลไม่ถูกต้อง"
+loginEmailPlaceholder = "อีเมล"
+loginForgotPasswordText = "ลืมรหัสผ่าน?"
+loginButtonText = "เข้าสู่ระบบ"
+loginPasswordDisclaimer1 = "รหัสผ่านจะถูกส่งผ่าน HTTPS ไปยังระบบยืนยันตัวตนของเซิร์ฟเวอร์ และ Launcher จะไม่บันทึกรหัสผ่าน"
+loginPasswordDisclaimer2 = "{appName} จะไม่เชื่อมต่อฐานข้อมูล AuthMe โดยตรง"
+
+[ejs.loginOptions]
+loginOptionsTitle = "เข้าสู่ระบบเซิร์ฟเวอร์"
+loginWithLocal = "เข้าสู่ระบบด้วยบัญชีเซิร์ฟเวอร์"
+cancelButton = "ยกเลิก"
+
+[ejs.settings]
+navHeaderText = "ตั้งค่า"
+navAccount = "บัญชี"
+navDone = "เสร็จสิ้น"
+tabAccountHeaderText = "การตั้งค่าบัญชี"
+tabAccountHeaderDesc = "เพิ่มบัญชีใหม่หรือจัดการบัญชีที่มีอยู่"
+localAccount = "บัญชีเซิร์ฟเวอร์"
+addLocalAccount = "+ เพิ่มบัญชีเซิร์ฟเวอร์"
+
+[js.login]
+login = "เข้าสู่ระบบ"
+loggingIn = "กำลังเข้าสู่ระบบ"
+register = "สมัครสมาชิก"
+registering = "กำลังสมัครสมาชิก"
+success = "สำเร็จ"
+tryAgain = "ลองอีกครั้ง"
+
+[js.login.error]
+invalidValue = "* ข้อมูลไม่ถูกต้อง"
+requiredValue = "* จำเป็นต้องกรอก"
+invalidUsername = "* ใช้ตัวอักษร ตัวเลข หรือ _ จำนวน 3-16 ตัว"
+invalidPassword = "* ใช้รหัสผ่าน 8-128 ตัวอักษร"
+passwordMismatch = "* รหัสผ่านไม่ตรงกัน"
+invalidEmail = "* อีเมลไม่ถูกต้อง"
+
+[js.login.error.unknown]
+title = "เกิดข้อผิดพลาดระหว่างเข้าสู่ระบบ"
+desc = "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ กรุณาลองใหม่อีกครั้ง"
+
+[js.auth.local.error]
+title = "ยืนยันบัญชีเซิร์ฟเวอร์ไม่สำเร็จ"
+AUTHENTICATION_FAILED = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+INVALID_USERNAME = "ชื่อผู้ใช้ต้องเป็นตัวอักษร ตัวเลข หรือ _ จำนวน 3-16 ตัว"
+INVALID_PASSWORD = "รหัสผ่านต้องมีความยาว 8-128 ตัวอักษร"
+INVALID_EMAIL = "กรุณากรอกอีเมลให้ถูกต้อง"
+PASSWORD_MISMATCH = "รหัสผ่านยืนยันไม่ตรงกัน"
+USERNAME_UNAVAILABLE = "ชื่อผู้ใช้นี้ไม่สามารถใช้ได้ กรุณาเลือกชื่ออื่น"
+RATE_LIMITED = "ลองหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่"
+NOT_CONFIGURED = "Launcher ยังไม่ได้ตั้งค่าระบบบัญชีเซิร์ฟเวอร์"
+SERVICE_UNAVAILABLE = "ระบบยืนยันตัวตนไม่พร้อมใช้งาน กรุณาลองใหม่ภายหลัง"
+
+[js.uibinder.validateAccount]
+failedMessageTitle = "ต่ออายุการเข้าสู่ระบบไม่สำเร็จ"
+failedMessage = "ไม่สามารถต่ออายุการเข้าสู่ระบบของ <strong>{account}</strong> ได้ กรุณาเลือกบัญชีอื่นหรือเข้าสู่ระบบใหม่"
+failedMessageSelectAnotherAccount = "ไม่สามารถต่ออายุการเข้าสู่ระบบของ <strong>{account}</strong> ได้ กรุณาเข้าสู่ระบบใหม่"
+loginButton = "เข้าสู่ระบบ"
+selectAnotherAccountButton = "เลือกบัญชีอื่น"
+
+[js.landing.dlAsync]
+ssoTicketFailure = "Launcher ไม่สามารถสร้างตั๋วเข้าสู่เซิร์ฟเวอร์แบบปลอดภัยและมีอายุสั้นได้ กรุณาเข้าสู่ระบบใหม่หรือลองอีกครั้งภายหลัง"

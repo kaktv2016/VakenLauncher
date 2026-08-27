@@ -39,6 +39,34 @@ The distribution index is written in JSON. The general format of the index is as
 }
 ```
 
+---
+
+### NeoForge
+
+The module type `NeoForge` represents the installer-generated patched client
+artifact for the supported NeoForge version. It is stored in the shared Maven
+library tree and must contain a `VersionManifest` submodule plus all runtime
+libraries generated or downloaded by the official installer. The launcher
+uses the manifest's JVM arguments, game arguments, module path, and main class
+directly. It does not translate the module to Forge or emit Forge's removed
+`--fml.modLists` mechanism.
+
+For Minecraft 1.21.1, declare Java 21 in `Server.javaOptions`. See
+[`NeoForge.md`](NeoForge.md) for the supported manifest shape and generator
+workflow, and [`neoforge_distribution.example.json`](neoforge_distribution.example.json)
+for a complete generated example.
+
+---
+
+### NeoForgeMod
+
+The module type `NeoForgeMod` represents a mod discovered by NeoForge from the
+instance's standard `mods` directory. The artifact must use a Maven identifier
+and should declare an instance-relative path such as `mods/example.jar`.
+Required and optional declarations use the same `required` object as the
+existing mod types. Optional modules are shown in Helios's existing mod
+selection UI.
+
 ## Distro Index Object
 
 #### Example

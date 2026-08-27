@@ -1,234 +1,272 @@
 /**
- * Script for login.ejs
+ * Local/AuthMe login and registration view.
  */
-// Validation Regexes.
-const validUsername         = /^[a-zA-Z0-9_]{1,16}$/
-const basicEmail            = /^\S+@\S+\.\S+$/
-//const validEmail          = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
+const validLocalUsername = /^[A-Za-z0-9_]{3,16}$/
+const validLocalEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const localControlCharacters = /[\u0000-\u001f\u007f]/
 
-// Login Elements
-const loginCancelContainer  = document.getElementById('loginCancelContainer')
-const loginCancelButton     = document.getElementById('loginCancelButton')
-const loginEmailError       = document.getElementById('loginEmailError')
-const loginUsername         = document.getElementById('loginUsername')
-const loginPasswordError    = document.getElementById('loginPasswordError')
-const loginPassword         = document.getElementById('loginPassword')
-const checkmarkContainer    = document.getElementById('checkmarkContainer')
-const loginRememberOption   = document.getElementById('loginRememberOption')
-const loginButton           = document.getElementById('loginButton')
-const loginForm             = document.getElementById('loginForm')
+const loginCancelContainer = document.getElementById('loginCancelContainer')
+const loginCancelButton = document.getElementById('loginCancelButton')
+const loginUsernameError = document.getElementById('loginUsernameError')
+const loginUsername = document.getElementById('loginUsername')
+const loginPasswordError = document.getElementById('loginPasswordError')
+const loginPassword = document.getElementById('loginPassword')
+const loginConfirmContainer = document.getElementById('loginConfirmContainer')
+const loginConfirmError = document.getElementById('loginConfirmError')
+const loginConfirmPassword = document.getElementById('loginConfirmPassword')
+const loginEmailContainer = document.getElementById('loginEmailContainer')
+const loginEmailError = document.getElementById('loginEmailError')
+const loginEmail = document.getElementById('loginEmail')
+const loginForgotPassword = document.getElementById('loginForgotPassword')
+const loginModeLogin = document.getElementById('loginModeLogin')
+const loginModeRegister = document.getElementById('loginModeRegister')
+const loginButton = document.getElementById('loginButton')
+const loginButtonLabel = document.getElementById('loginButtonLabel')
+const loginForm = document.getElementById('loginForm')
 
-// Control variables.
-let lu = false, lp = false
+let localAuthMode = 'login'
+let localAuthCapabilities = { emailEnabled: false, emailRequired: false, recoveryUrl: null }
+let loginViewOnSuccess = VIEWS.landing
+let loginViewOnCancel = VIEWS.settings
+let loginViewCancelHandler
 
-
-/**
- * Show a login error.
- * 
- * @param {HTMLElement} element The element on which to display the error.
- * @param {string} value The error text.
- */
-function showError(element, value){
-    element.innerHTML = value
+function showLoginError(element, value) {
+    element.textContent = value
     element.style.opacity = 1
 }
 
-/**
- * Shake a login error to add emphasis.
- * 
- * @param {HTMLElement} element The element to shake.
- */
-function shakeError(element){
-    if(element.style.opacity == 1){
+function hideLoginError(element) {
+    element.style.opacity = 0
+}
+
+function shakeError(element) {
+    if(element.style.opacity == 1) {
         element.classList.remove('shake')
         void element.offsetWidth
         element.classList.add('shake')
     }
 }
 
-/**
- * Validate that an email field is neither empty nor invalid.
- * 
- * @param {string} value The email value.
- */
-function validateEmail(value){
-    if(value){
-        if(!basicEmail.test(value) && !validUsername.test(value)){
-            showError(loginEmailError, Lang.queryJS('login.error.invalidValue'))
-            loginDisabled(true)
-            lu = false
-        } else {
-            loginEmailError.style.opacity = 0
-            lu = true
-            if(lp){
-                loginDisabled(false)
-            }
-        }
+function validateLocalUsername(value) {
+    const valid = validLocalUsername.test(value)
+    if(valid) {
+        hideLoginError(loginUsernameError)
     } else {
-        lu = false
-        showError(loginEmailError, Lang.queryJS('login.error.requiredValue'))
-        loginDisabled(true)
+        showLoginError(loginUsernameError, Lang.queryJS('login.error.invalidUsername'))
     }
+    updateLocalSubmitState()
+    return valid
 }
 
-/**
- * Validate that the password field is not empty.
- * 
- * @param {string} value The password value.
- */
-function validatePassword(value){
-    if(value){
-        loginPasswordError.style.opacity = 0
-        lp = true
-        if(lu){
-            loginDisabled(false)
-        }
+function validateLocalPassword(value) {
+    const valid = value.length >= 8 && value.length <= 128 && !localControlCharacters.test(value)
+    if(valid) {
+        hideLoginError(loginPasswordError)
     } else {
-        lp = false
-        showError(loginPasswordError, Lang.queryJS('login.error.invalidValue'))
-        loginDisabled(true)
+        showLoginError(loginPasswordError, Lang.queryJS('login.error.invalidPassword'))
     }
+    updateLocalSubmitState()
+    return valid
 }
 
-// Emphasize errors with shake when focus is lost.
-loginUsername.addEventListener('focusout', (e) => {
-    validateEmail(e.target.value)
-    shakeError(loginEmailError)
-})
-loginPassword.addEventListener('focusout', (e) => {
-    validatePassword(e.target.value)
-    shakeError(loginPasswordError)
-})
-
-// Validate input for each field.
-loginUsername.addEventListener('input', (e) => {
-    validateEmail(e.target.value)
-})
-loginPassword.addEventListener('input', (e) => {
-    validatePassword(e.target.value)
-})
-
-/**
- * Enable or disable the login button.
- * 
- * @param {boolean} v True to enable, false to disable.
- */
-function loginDisabled(v){
-    if(loginButton.disabled !== v){
-        loginButton.disabled = v
+function validateLocalConfirmation(value) {
+    const valid = localAuthMode !== 'register' || (value.length > 0 && value === loginPassword.value)
+    if(valid) {
+        hideLoginError(loginConfirmError)
+    } else {
+        showLoginError(loginConfirmError, Lang.queryJS('login.error.passwordMismatch'))
     }
+    updateLocalSubmitState()
+    return valid
 }
 
-/**
- * Enable or disable loading elements.
- * 
- * @param {boolean} v True to enable, false to disable.
- */
-function loginLoading(v){
-    if(v){
-        loginButton.setAttribute('loading', v)
-        loginButton.innerHTML = loginButton.innerHTML.replace(Lang.queryJS('login.login'), Lang.queryJS('login.loggingIn'))
+function validateLocalEmail(value) {
+    const required = localAuthMode === 'register' && localAuthCapabilities.emailRequired
+    const valid = !required && value.length === 0 || value.length <= 254 && validLocalEmail.test(value)
+    if(valid) {
+        hideLoginError(loginEmailError)
+    } else {
+        showLoginError(loginEmailError, Lang.queryJS('login.error.invalidEmail'))
+    }
+    updateLocalSubmitState()
+    return valid
+}
+
+function localFormValid() {
+    const usernameValid = validLocalUsername.test(loginUsername.value)
+    const passwordValid = loginPassword.value.length >= 8
+        && loginPassword.value.length <= 128
+        && !localControlCharacters.test(loginPassword.value)
+    if(localAuthMode === 'login') {
+        return usernameValid && passwordValid
+    }
+    const confirmationValid = loginConfirmPassword.value === loginPassword.value
+        && loginConfirmPassword.value.length > 0
+    const emailValid = !localAuthCapabilities.emailEnabled
+        || (!localAuthCapabilities.emailRequired && loginEmail.value.length === 0)
+        || (loginEmail.value.length <= 254 && validLocalEmail.test(loginEmail.value))
+    return usernameValid && passwordValid && confirmationValid && emailValid
+}
+
+function updateLocalSubmitState() {
+    loginButton.disabled = !localFormValid()
+}
+
+function loginLoading(value) {
+    if(value) {
+        loginButton.setAttribute('loading', '')
+        loginButtonLabel.textContent = localAuthMode === 'register'
+            ? Lang.queryJS('login.registering')
+            : Lang.queryJS('login.loggingIn')
     } else {
         loginButton.removeAttribute('loading')
-        loginButton.innerHTML = loginButton.innerHTML.replace(Lang.queryJS('login.loggingIn'), Lang.queryJS('login.login'))
+        loginButtonLabel.textContent = localAuthMode === 'register'
+            ? Lang.queryJS('login.register')
+            : Lang.queryJS('login.login')
     }
 }
 
-/**
- * Enable or disable login form.
- * 
- * @param {boolean} v True to enable, false to disable.
- */
-function formDisabled(v){
-    loginDisabled(v)
-    loginCancelButton.disabled = v
-    loginUsername.disabled = v
-    loginPassword.disabled = v
-    if(v){
-        checkmarkContainer.setAttribute('disabled', v)
-    } else {
-        checkmarkContainer.removeAttribute('disabled')
-    }
-    loginRememberOption.disabled = v
+function formDisabled(value) {
+    loginCancelButton.disabled = value
+    loginUsername.disabled = value
+    loginPassword.disabled = value
+    loginConfirmPassword.disabled = value
+    loginEmail.disabled = value
+    loginModeLogin.disabled = value
+    loginModeRegister.disabled = value
+    loginButton.disabled = value || !localFormValid()
 }
 
-let loginViewOnSuccess = VIEWS.landing
-let loginViewOnCancel = VIEWS.settings
-let loginViewCancelHandler
+function clearLocalCredentials() {
+    loginPassword.value = ''
+    loginConfirmPassword.value = ''
+    loginEmail.value = ''
+    updateLocalSubmitState()
+}
 
-function loginCancelEnabled(val){
-    if(val){
+function loginCancelEnabled(value) {
+    if(value) {
         $(loginCancelContainer).show()
     } else {
         $(loginCancelContainer).hide()
     }
 }
 
-loginCancelButton.onclick = (e) => {
+function setLocalAuthMode(mode) {
+    localAuthMode = mode
+    const registering = mode === 'register'
+    loginModeLogin.toggleAttribute('selected', !registering)
+    loginModeRegister.toggleAttribute('selected', registering)
+    loginConfirmContainer.style.display = registering ? 'flex' : 'none'
+    loginEmailContainer.style.display = registering && localAuthCapabilities.emailEnabled ? 'flex' : 'none'
+    loginButtonLabel.textContent = registering ? Lang.queryJS('login.register') : Lang.queryJS('login.login')
+    hideLoginError(loginConfirmError)
+    hideLoginError(loginEmailError)
+    updateLocalSubmitState()
+}
+
+async function prepareLocalAuthForm() {
+    localAuthCapabilities = await AuthManager.getLocalAuthCapabilities()
+    const recoveryUrl = localAuthCapabilities.recoveryUrl
+    if(typeof recoveryUrl === 'string' && recoveryUrl.startsWith('https://')) {
+        loginForgotPassword.style.display = 'inline'
+        loginForgotPassword.onclick = (event) => {
+            event.preventDefault()
+            shell.openExternal(recoveryUrl)
+        }
+    } else {
+        loginForgotPassword.style.display = 'none'
+        loginForgotPassword.onclick = null
+    }
+    setLocalAuthMode('login')
+}
+
+loginUsername.addEventListener('input', event => validateLocalUsername(event.target.value))
+loginPassword.addEventListener('input', event => {
+    validateLocalPassword(event.target.value)
+    if(localAuthMode === 'register' && loginConfirmPassword.value.length > 0) {
+        validateLocalConfirmation(loginConfirmPassword.value)
+    }
+})
+loginConfirmPassword.addEventListener('input', event => validateLocalConfirmation(event.target.value))
+loginEmail.addEventListener('input', event => validateLocalEmail(event.target.value))
+
+for(const [field, error, validator] of [
+    [loginUsername, loginUsernameError, validateLocalUsername],
+    [loginPassword, loginPasswordError, validateLocalPassword],
+    [loginConfirmPassword, loginConfirmError, validateLocalConfirmation],
+    [loginEmail, loginEmailError, validateLocalEmail]
+]) {
+    field.addEventListener('focusout', event => {
+        validator(event.target.value)
+        shakeError(error)
+    })
+}
+
+loginModeLogin.onclick = () => setLocalAuthMode('login')
+loginModeRegister.onclick = () => setLocalAuthMode('register')
+
+loginCancelButton.onclick = () => {
     switchView(getCurrentView(), loginViewOnCancel, 500, 500, () => {
         loginUsername.value = ''
-        loginPassword.value = ''
+        clearLocalCredentials()
         loginCancelEnabled(false)
-        if(loginViewCancelHandler != null){
+        if(loginViewCancelHandler != null) {
             loginViewCancelHandler()
             loginViewCancelHandler = null
         }
     })
 }
 
-// Disable default form behavior.
-loginForm.onsubmit = () => { return false }
+loginForm.onsubmit = () => false
 
-// Bind login button behavior.
-loginButton.addEventListener('click', () => {
-    // Disable form.
+loginButton.addEventListener('click', async () => {
+    if(!localFormValid()) {
+        return
+    }
     formDisabled(true)
-
-    // Show loading stuff.
     loginLoading(true)
 
-    AuthManager.addMojangAccount(loginUsername.value, loginPassword.value).then((value) => {
-        updateSelectedAccount(value)
-        loginButton.innerHTML = loginButton.innerHTML.replace(Lang.queryJS('login.loggingIn'), Lang.queryJS('login.success'))
+    try {
+        const account = localAuthMode === 'register'
+            ? await AuthManager.registerLocalAccount(
+                loginUsername.value,
+                loginPassword.value,
+                loginConfirmPassword.value,
+                loginEmail.value || null
+            )
+            : await AuthManager.addLocalAccount(loginUsername.value, loginPassword.value)
+        updateSelectedAccount(account)
+        loginButtonLabel.textContent = Lang.queryJS('login.success')
         $('.circle-loader').toggleClass('load-complete')
         $('.checkmark').toggle()
         setTimeout(() => {
             switchView(VIEWS.login, loginViewOnSuccess, 500, 500, async () => {
-                // Temporary workaround
-                if(loginViewOnSuccess === VIEWS.settings){
+                if(loginViewOnSuccess === VIEWS.settings) {
                     await prepareSettings()
                 }
-                loginViewOnSuccess = VIEWS.landing // Reset this for good measure.
-                loginCancelEnabled(false) // Reset this for good measure.
-                loginViewCancelHandler = null // Reset this for good measure.
+                loginViewOnSuccess = VIEWS.landing
+                loginCancelEnabled(false)
+                loginViewCancelHandler = null
                 loginUsername.value = ''
-                loginPassword.value = ''
+                clearLocalCredentials()
                 $('.circle-loader').toggleClass('load-complete')
                 $('.checkmark').toggle()
                 loginLoading(false)
-                loginButton.innerHTML = loginButton.innerHTML.replace(Lang.queryJS('login.success'), Lang.queryJS('login.login'))
                 formDisabled(false)
             })
         }, 1000)
-    }).catch((displayableError) => {
+    } catch(displayableError) {
+        clearLocalCredentials()
         loginLoading(false)
-
-        let actualDisplayableError
-        if(isDisplayableError(displayableError)) {
-            msftLoginLogger.error('Error while logging in.', displayableError)
-            actualDisplayableError = displayableError
-        } else {
-            // Uh oh.
-            msftLoginLogger.error('Unhandled error during login.', displayableError)
-            actualDisplayableError = Lang.queryJS('login.error.unknown')
-        }
-
-        setOverlayContent(actualDisplayableError.title, actualDisplayableError.desc, Lang.queryJS('login.tryAgain'))
+        const actualError = isDisplayableError(displayableError)
+            ? displayableError
+            : Lang.queryJS('login.error.unknown')
+        setOverlayContent(actualError.title, actualError.desc, Lang.queryJS('login.tryAgain'))
         setOverlayHandler(() => {
             formDisabled(false)
             toggleOverlay(false)
         })
         toggleOverlay(true)
-    })
-
+    }
 })

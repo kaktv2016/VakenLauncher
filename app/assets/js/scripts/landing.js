@@ -3,12 +3,8 @@
  */
 // Requirements
 const { URL }                 = require('url')
+const { getServerStatus }     = require('helios-core/mojang')
 const {
-    MojangRestAPI,
-    getServerStatus
-}                             = require('helios-core/mojang')
-const {
-    RestResponseStatus,
     isDisplayableError,
     validateLocalFile
 }                             = require('helios-core/common')
@@ -29,7 +25,10 @@ const {
 
 // Internal Requirements
 const DiscordWrapper          = require('./assets/js/discordwrapper')
+const AuthManager             = require('./assets/js/authmanager')
 const ProcessBuilder          = require('./assets/js/processbuilder')
+const LocalAuth               = require('./assets/js/localauth')
+const { createConnectionTicketCoordinator, removeTicketFile } = require('./assets/js/ssoticket')
 
 // Launch Elements
 const launch_content          = document.getElementById('launch_content')
@@ -176,65 +175,6 @@ server_selection_button.onclick = async e => {
     await toggleServerSelection(true)
 }
 
-// Update Mojang Status Color
-const refreshMojangStatuses = async function(){
-    loggerLanding.info('Refreshing Mojang Statuses..')
-
-    let status = 'grey'
-    let tooltipEssentialHTML = ''
-    let tooltipNonEssentialHTML = ''
-
-    const response = await MojangRestAPI.status()
-    let statuses
-    if(response.responseStatus === RestResponseStatus.SUCCESS) {
-        statuses = response.data
-    } else {
-        loggerLanding.warn('Unable to refresh Mojang service status.')
-        statuses = MojangRestAPI.getDefaultStatuses()
-    }
-    
-    greenCount = 0
-    greyCount = 0
-
-    for(let i=0; i<statuses.length; i++){
-        const service = statuses[i]
-
-        const tooltipHTML = `<div class="mojangStatusContainer">
-            <span class="mojangStatusIcon" style="color: ${MojangRestAPI.statusToHex(service.status)};">&#8226;</span>
-            <span class="mojangStatusName">${service.name}</span>
-        </div>`
-        if(service.essential){
-            tooltipEssentialHTML += tooltipHTML
-        } else {
-            tooltipNonEssentialHTML += tooltipHTML
-        }
-
-        if(service.status === 'yellow' && status !== 'red'){
-            status = 'yellow'
-        } else if(service.status === 'red'){
-            status = 'red'
-        } else {
-            if(service.status === 'grey'){
-                ++greyCount
-            }
-            ++greenCount
-        }
-
-    }
-
-    if(greenCount === statuses.length){
-        if(greyCount === statuses.length){
-            status = 'grey'
-        } else {
-            status = 'green'
-        }
-    }
-    
-    document.getElementById('mojangStatusEssentialContainer').innerHTML = tooltipEssentialHTML
-    document.getElementById('mojangStatusNonEssentialContainer').innerHTML = tooltipNonEssentialHTML
-    document.getElementById('mojang_status_icon').style.color = MojangRestAPI.statusToHex(status)
-}
-
 const refreshServerStatus = async (fade = false) => {
     loggerLanding.info('Refreshing Server Status')
     const serv = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
@@ -266,11 +206,8 @@ const refreshServerStatus = async (fade = false) => {
     
 }
 
-refreshMojangStatuses()
 // Server Status is refreshed in uibinder.js on distributionIndexDone.
 
-// Refresh statuses every hour. The status page itself refreshes every day so...
-let mojangStatusListener = setInterval(() => refreshMojangStatuses(true), 60*60*1000)
 // Set refresh rate to once every 5 minutes.
 let serverStatusListener = setInterval(() => refreshServerStatus(true), 300000)
 
@@ -501,7 +438,7 @@ async function dlAsync(login = true) {
 
     loggerLaunchSuite.info('Validating files.')
     setLaunchDetails(Lang.queryJS('landing.dlAsync.validatingFileIntegrity'))
-    let invalidFileCount = 0
+    let invalidFileCount
     try {
         invalidFileCount = await fullRepairModule.verifyFiles(percent => {
             setLaunchPercentage(percent)
@@ -552,10 +489,52 @@ async function dlAsync(login = true) {
     const versionData = await mojangIndexProcessor.getVersionJson()
 
     if(login) {
+        if(!await AuthManager.validateSelected()) {
+            loggerLaunchSuite.error('The selected account could not be refreshed before launch.')
+            showLaunchFailure(
+                Lang.queryJS('landing.dlAsync.errorDuringLaunchTitle'),
+                Lang.queryJS('landing.dlAsync.ssoTicketFailure')
+            )
+            return
+        }
         const authUser = ConfigManager.getSelectedAccount()
         loggerLaunchSuite.info(`Sending selected account (${authUser.displayName}) to ProcessBuilder.`)
         let pb = new ProcessBuilder(serv, versionData, modLoaderData, authUser, remote.app.getVersion())
         setLaunchDetails(Lang.queryJS('landing.dlAsync.launchingGame'))
+
+        // NeoForge modpacks can take longer to boot than the ticket TTL. Issue a
+        // fresh ticket when Minecraft actually begins connecting, not when the
+        // process is spawned. The companion mod polls briefly for this atomic file.
+        let ssoCoordinator = null
+        if(authUser.type === 'local') {
+            removeTicketFile(pb.gameDir)
+            ssoCoordinator = createConnectionTicketCoordinator({
+                gameDirectory: pb.gameDir,
+                issueTicket: async () => {
+                    if(!await AuthManager.validateSelected()) {
+                        throw new Error('SSO_ACCOUNT_REFRESH_FAILED')
+                    }
+                    const currentAccount = ConfigManager.getSelectedAccount()
+                    if(currentAccount == null
+                            || currentAccount.type !== authUser.type
+                            || currentAccount.uuid !== authUser.uuid) {
+                        throw new Error('SSO_ACCOUNT_CHANGED')
+                    }
+                    const ticketResult = await LocalAuth.issueMinecraftTicket(currentAccount.accessToken)
+                    if(!ticketResult.ok) {
+                        throw new Error('SSO_TICKET_UNAVAILABLE')
+                    }
+                    return ticketResult.data
+                },
+                onError: () => {
+                    loggerLaunchSuite.error('Unable to prepare the short-lived server sign-in ticket.')
+                },
+                onReady: () => {
+                    loggerLaunchSuite.info('Prepared a fresh one-time sign-in ticket for this connection.')
+                },
+                serverAddress: serv.rawServer.address
+            })
+        }
 
         // const SERVER_JOINED_REGEX = /\[.+\]: \[CHAT\] [a-zA-Z0-9_]{1,16} joined the game/
         const SERVER_JOINED_REGEX = new RegExp(`\\[.+\\]: \\[CHAT\\] ${authUser.displayName} joined the game`)
@@ -607,6 +586,15 @@ async function dlAsync(login = true) {
         try {
             // Build Minecraft process.
             proc = pb.build()
+            if(ssoCoordinator != null) {
+                proc.stdout.on('data', ssoCoordinator.handleGameOutput)
+                proc.stderr.on('data', ssoCoordinator.handleGameOutput)
+                proc.once('close', () => {
+                    proc?.stdout?.removeListener('data', ssoCoordinator.handleGameOutput)
+                    proc?.stderr?.removeListener('data', ssoCoordinator.handleGameOutput)
+                    ssoCoordinator.dispose()
+                })
+            }
 
             // Bind listeners to stdout.
             proc.stdout.on('data', tempListener)
@@ -627,6 +615,10 @@ async function dlAsync(login = true) {
             }
 
         } catch(err) {
+
+            if(ssoCoordinator != null) {
+                ssoCoordinator.dispose()
+            }
 
             loggerLaunchSuite.error('Error during launch', err)
             showLaunchFailure(Lang.queryJS('landing.dlAsync.errorDuringLaunchTitle'), Lang.queryJS('landing.dlAsync.checkConsoleForDetails'))

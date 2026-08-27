@@ -8,7 +8,10 @@ asar: true
 compression: 'maximum'
 
 files:
-  - '!{dist,.gitignore,.vscode,docs,dev-app-update.yml,.nvmrc,eslint.config.mjs}'
+  - '!{dist,.gitignore,.vscode,docs,services,test,tools,dev-app-update.yml,.nvmrc,eslint.config.mjs}'
+  - '!node_modules/helios-core/dist/microsoft{,/**}'
+  - '!node_modules/helios-core/dist/microsoft.js'
+  - '!node_modules/helios-core/dist/microsoft.d.ts'
 
 extraResources:
   - 'libraries'

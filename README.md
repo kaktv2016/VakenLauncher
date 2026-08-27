@@ -15,8 +15,8 @@
 
 * 🔒 Full account management.
   * Add multiple accounts and easily switch between them.
-  * Microsoft (OAuth 2.0) + Mojang (Yggdrasil) authentication fully supported.
-  * Credentials are never stored and transmitted directly to Mojang.
+  * Server-local registration and login through the HTTPS AuthMe backend.
+  * Passwords are never stored by the launcher or passed on the game command line.
 * 📂 Efficient asset management.
   * Receive client updates as soon as we release them.
   * Files are validated before launch. Corrupt or incorrect files will be redownloaded.
@@ -29,7 +29,6 @@
   * Switch between server configurations with ease.
   * View the player count of the selected server.
 * Automatic updates. That's right, the launcher updates itself.
-*  View the status of Mojang's services.
 
 This is not an exhaustive list. Download and install the launcher to gauge all it can do!
 
@@ -180,8 +179,6 @@ Note that you **cannot** open the DevTools window while using this debug configu
 ### Note on Third-Party Usage
 
 Please give credit to the original author and provide a link to the original source. This is free software, please do at least this much.
-
-For instructions on setting up Microsoft Authentication, see https://github.com/dscalzi/HeliosLauncher/blob/master/docs/MicrosoftAuth.md.
 
 ---
 

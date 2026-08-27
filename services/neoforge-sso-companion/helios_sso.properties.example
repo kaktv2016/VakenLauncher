@@ -1,0 +1,5 @@
+bridgeUrl=https://127.0.0.1:8765
+serverId=youer-main
+sharedSecret=replace-with-at-least-32-random-bytes
+trustStorePath=C:\\absolute\\path\\to\\truststore.p12
+trustStorePassword=replace-with-the-pkcs12-password

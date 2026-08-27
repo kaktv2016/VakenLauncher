@@ -11,6 +11,8 @@ const remote                         = require('@electron/remote')
 const isDev                          = require('./assets/js/isdev')
 const { LoggerUtil }                 = require('helios-core')
 const Lang                           = require('./assets/js/langloader')
+const releaseConfigUICore            = require('./assets/launcher-config.json')
+const { resolveGitHubRepository: resolveGitHubRepositoryUICore } = require('./assets/js/releaseconfig')
 
 const loggerUICore             = LoggerUtil.getLogger('UICore')
 const loggerAutoUpdater        = LoggerUtil.getLogger('AutoUpdater')
@@ -48,7 +50,9 @@ if(!isDev){
                 loggerAutoUpdater.info('New update available', info.version)
                 
                 if(process.platform === 'darwin'){
-                    info.darwindownload = `https://github.com/dscalzi/HeliosLauncher/releases/download/v${info.version}/Helios-Launcher-setup-${info.version}${process.arch === 'arm64' ? '-arm64' : '-x64'}.dmg`
+                    const repository = resolveGitHubRepositoryUICore(releaseConfigUICore)
+                    const artifact = `${remote.app.getName()}-setup-${info.version}-${process.arch}.dmg`
+                    info.darwindownload = `${repository.webUrl}/releases/download/v${info.version}/${encodeURIComponent(artifact)}`
                     showUpdateUI(info)
                 }
                 
@@ -72,6 +76,9 @@ if(!isDev){
                     ipcRenderer.send('autoUpdateAction', 'checkForUpdate')
                 }, 1800000)
                 ipcRenderer.send('autoUpdateAction', 'checkForUpdate')
+                break
+            case 'disabled':
+                loggerAutoUpdater.info('Auto updater is disabled until a release repository is configured.')
                 break
             case 'realerror':
                 if(info != null && info.code != null){

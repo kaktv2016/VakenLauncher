@@ -489,19 +489,40 @@ body, button {
     border-radius: 50%;
     border: 2px solid #cad7e1;
     background: rgba(1, 2, 1, 0.5);
-    height: 125px;
-    width: 125px;
+    height: 90px;
+    width: 90px;
     box-shadow: 0px 0px 10px 0px rgb(0, 0, 0);
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 /* Header on login view. */
 #loginSubheader {
     font-family: 'Avenir Medium';
-    margin-bottom: 25px;
+    margin-bottom: 12px;
     font-size: 12px;
     letter-spacing: 1px;
     font-weight: bold;
+}
+
+#loginModeSelector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+#loginModeSelector button {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 3px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    font-size: 10px;
+    padding: 6px 14px;
+}
+
+#loginModeSelector button[selected] {
+    border-color: #fff;
+    color: #fff;
 }
 
 /* Container to organize login field elements. */
@@ -563,7 +584,7 @@ body, button {
     border-width: 1.5px 0px 0px 0px;
     border-style: solid;
     width: 250px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     border-color: #fff;
     color: rgba(255, 255, 255, 0.75);
     font-weight: bold;
@@ -598,8 +619,9 @@ body, button {
 /* Container which contains the forgot and remember options. */
 #loginOptions {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     width: 100%;
+    min-height: 15px;
 }
 
 /* Remember option text. */
@@ -872,85 +894,6 @@ body, button {
     background-size: cover;
 }
 */
-
-/*******************************************************************************
- *                                                                             *
- * Waiting View (waiting.ejs)                                                  *
- *                                                                             *
- ******************************************************************************/
-
-#waitingContainer {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    width: 100%;
-    transition: filter 0.25s ease;
-    background: rgba(0, 0, 0, 0.50);
-}
-
-#waitingContent {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: 50%;
-    top: -10%;
-    position: relative;
-}
-
-.waitingSpinner:before {
-    transform: rotateX(60deg) rotateY(45deg) rotateZ(45deg);
-    animation: 750ms rotateBefore infinite linear reverse;
-}
-.waitingSpinner:after {
-    transform: rotateX(240deg) rotateY(45deg) rotateZ(45deg);
-    animation: 750ms rotateAfter infinite linear;
-}
-.waitingSpinner:before,
-.waitingSpinner:after {
-    box-sizing: border-box;
-    content: '';
-    display: block;
-    position: fixed;
-    top: calc(50% - 5em);
-    /* left: 50%; */
-    margin-top: -5em;
-    margin-left: -5em;
-    width: 10em;
-    height: 10em;
-    transform-style: preserve-3d;
-    transform-origin: 50%;
-    transform: rotateY(50%);
-    perspective-origin: 50% 50%;
-    perspective: 340px;
-    background-size: 10em 10em;
-    background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+Cjxzdmcgd2lkdGg9IjI2NnB4IiBoZWlnaHQ9IjI5N3B4IiB2aWV3Qm94PSIwIDAgMjY2IDI5NyIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWxuczpza2V0Y2g9Imh0dHA6Ly93d3cuYm9oZW1pYW5jb2RpbmcuY29tL3NrZXRjaC9ucyI+CiAgICA8dGl0bGU+c3Bpbm5lcjwvdGl0bGU+CiAgICA8ZGVzY3JpcHRpb24+Q3JlYXRlZCB3aXRoIFNrZXRjaCAoaHR0cDovL3d3dy5ib2hlbWlhbmNvZGluZy5jb20vc2tldGNoKTwvZGVzY3JpcHRpb24+CiAgICA8ZGVmcz48L2RlZnM+CiAgICA8ZyBpZD0iUGFnZS0xIiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBza2V0Y2g6dHlwZT0iTVNQYWdlIj4KICAgICAgICA8cGF0aCBkPSJNMTcxLjUwNzgxMywzLjI1MDAwMDM4IEMyMjYuMjA4MTgzLDEyLjg1NzcxMTEgMjk3LjExMjcyMiw3MS40OTEyODIzIDI1MC44OTU1OTksMTA4LjQxMDE1NSBDMjE2LjU4MjAyNCwxMzUuODIwMzEgMTg2LjUyODQwNSw5Ny4wNjI0OTY0IDE1Ni44MDA3NzQsODUuNzczNDM0NiBDMTI3LjA3MzE0Myw3NC40ODQzNzIxIDc2Ljg4ODQ2MzIsODQuMjE2MTQ2MiA2MC4xMjg5MDY1LDEwOC40MTAxNTMgQy0xNS45ODA0Njg1LDIxOC4yODEyNDcgMTQ1LjI3NzM0NCwyOTYuNjY3OTY4IDE0NS4yNzczNDQsMjk2LjY2Nzk2OCBDMTQ1LjI3NzM0NCwyOTYuNjY3OTY4IC0yNS40NDkyMTg3LDI1Ny4yNDIxOTggMy4zOTg0Mzc1LDEwOC40MTAxNTUgQzE2LjMwNzA2NjEsNDEuODExNDE3NCA4NC43Mjc1ODI5LC0xMS45OTIyOTg1IDE3MS41MDc4MTMsMy4yNTAwMDAzOCBaIiBpZD0iUGF0aC0xIiBmaWxsPSIjZmZmZmZmIiBza2V0Y2g6dHlwZT0iTVNTaGFwZUdyb3VwIj48L3BhdGg+CiAgICA8L2c+Cjwvc3ZnPg==);
-}
-
-#waitingTextContainer {
-    position: fixed;
-    top: 50%;
-}
-
-@keyframes rotateBefore {
-    from {
-      transform: rotateX(60deg) rotateY(45deg) rotateZ(0deg);
-    }
-    to {
-      transform: rotateX(60deg) rotateY(45deg) rotateZ(-360deg);
-    }
-}
-
-@keyframes rotateAfter {
-    from {
-      transform: rotateX(240deg) rotateY(45deg) rotateZ(0deg);
-    }
-    to {
-      transform: rotateX(240deg) rotateY(45deg) rotateZ(360deg);
-    }
-}
 
 /*******************************************************************************
  *                                                                             *
@@ -3213,109 +3156,6 @@ input:checked + .toggleSwitchSlider:before {
     font-weight: 900;
     text-shadow: 0px 0px 20px #949494;
     margin-left: 10px;
-}
-
-/* Wrapper container for the mojang status bar. */
-#mojangStatusWrapper {
-    position: relative;
-    display: flex;
-    cursor: pointer;
-}
-
-/* Icon which displays the status of the mojang services. */
-#mojang_status_icon {
-    font-size: 30px;
-    color: #848484;
-    margin-left: 15px;
-    font-family: 'sans-serif';
-}
-
-/* Tooltip which displays more details about the mojang statuses. */
-#mojangStatusTooltip {
-    position: absolute;
-    visibility: hidden;
-    opacity: 0;
-    width: 145px;
-    min-height: 150px;
-    background-color: rgba(0, 0, 0, 0.75);
-    color: #fff;
-    border-radius: 4px;
-    padding: 5px 10px;
-    z-index: 1;
-    font-family: 'Avenir Medium';
-    font-size: 12px;
-    transition: visibility 0s linear 0.25s, opacity 0.25s ease;
-    bottom: calc(100% + 15px);
-    transform: translateX(-50%);
-    margin-left: 50%;
-    box-shadow: 0px 0px 20px rgb(0, 0, 0);
-    cursor: default;
-}
-#mojangStatusTooltip:after {
-    content: " ";
-    position: absolute;
-    left: 50%;
-    top: 100%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: rgba(0, 0, 0, 0.75) transparent transparent transparent;
-}
-#mojangStatusWrapper:hover #mojangStatusTooltip {
-    visibility: visible;
-    opacity: 1;
-    transition-delay: 0s;
-}
-
-/* Tooltip title for the mojang statuses. */
-#mojangStatusTooltipTitle {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 5px;
-    letter-spacing: 1px;
-}
-
-/* Wrapper container for the non essential services title. */
-#mojangStatusNEContainer {
-    display: flex;
-    align-items: center;
-    margin: 10px 0px;
-}
-
-/* White bar which surrounds the non essential service title. */
-.mojangStatusNEBar {
-    height: 1px;
-    width: 100%;
-    background: white;
-}
-
-/* Non essential service title text. */
-#mojangStatusNETitle {
-    font-size: 10px;
-    padding: 0px 3px;
-    text-align: center;
-    letter-spacing: 1px;
-}
-
-/* Wrapper container for mojang service information. */
-.mojangStatusContainer {
-    display: flex;
-}
-
-/* Displays the name of the mojang service. */
-.mojangStatusName {
-    width: 100%;
-    font-size: 10px;
-    letter-spacing: 1px;
-    line-height: 12px;
-    padding: 6px 0px;
-}
-
-/* Displays the status of the mojang service. */
-.mojangStatusIcon {
-    margin-right: 10px;
-    font-size: 18.5px;
-    color: #848484;
 }
 
 /* * *

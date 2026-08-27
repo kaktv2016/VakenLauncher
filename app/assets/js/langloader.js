@@ -2,6 +2,7 @@ const fs = require('fs-extra')
 const path = require('path')
 const toml = require('toml')
 const merge = require('lodash.merge')
+const launcherConfig = require('../launcher-config.json')
 
 let lang
 
@@ -35,8 +36,10 @@ exports.queryEJS = function(id, placeHolders){
 exports.setupLanguage = function(){
     // Load Language Files
     exports.loadLanguage('en_US')
-    // Uncomment this when translations are ready
-    //exports.loadLanguage('xx_XX')
+    const selectedLanguage = process.env.HELIOS_LANGUAGE || launcherConfig.language
+    if(selectedLanguage === 'th_TH') {
+        exports.loadLanguage('th_TH')
+    }
 
     // Load Custom Language File for Launcher Customizer
     exports.loadLanguage('_custom')

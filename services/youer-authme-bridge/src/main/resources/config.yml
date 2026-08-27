@@ -1,0 +1,23 @@
+# Keep this service loopback-only. Run the Helios authentication backend on the
+# same host as Youer and do not expose this port to players or the Internet.
+bind-address: 127.0.0.1
+port: 8765
+
+# PKCS#12 keystore containing the bridge HTTPS certificate and private key.
+# Environment variables HELIOS_BRIDGE_KEYSTORE and
+# HELIOS_BRIDGE_KEYSTORE_PASSWORD override these values.
+tls-keystore-path: plugins/HeliosAuthBridge/bridge.p12
+tls-keystore-password: change-me
+
+# Must match HELIOS_BRIDGE_SECRET on the backend. Prefer the environment
+# variable and keep at least 32 random bytes. Never put this in the launcher.
+shared-secret: change-me
+
+request-clock-skew-seconds: 30
+
+# HTTPS endpoint and PKCS#12 truststore for the authentication backend.
+# The corresponding HELIOS_AUTH_BACKEND_URL, HELIOS_BACKEND_TRUSTSTORE, and
+# HELIOS_BACKEND_TRUSTSTORE_PASSWORD environment variables override these values.
+backend-url: https://127.0.0.1:8443
+backend-truststore-path: plugins/HeliosAuthBridge/truststore.p12
+backend-truststore-password: change-me

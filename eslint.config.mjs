@@ -49,6 +49,7 @@ export default defineConfig(
     files: ['app/assets/js/scripts/*.js'],
     rules: {
       'no-unused-vars': 'off',
+      'no-unassigned-vars': 'off',
       'no-undef': 'off'
     }
   }

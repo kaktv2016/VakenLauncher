@@ -12,23 +12,36 @@
   "private": true,
   "main": "index.js",
   "scripts": {
+    "postinstall": "node tools/apply-dependency-patches.js",
     "start": "electron .",
+    "start:auth-staging": "node tools/start-auth-backend-staging.js",
+    "start:neoforge-staging": "node tools/start-neoforge-staging-launcher.js",
+    "test": "node --test",
+    "test:safe-storage": "electron tools/verify-safe-storage.js",
+    "test:bridge": "node tools/build-youer-bridge.js test",
+    "build:bridge": "node tools/build-youer-bridge.js package",
+    "build:sso-mod": "node tools/build-neoforge-sso.js",
+    "dist:server": "npm run build:bridge && npm run build:sso-mod && node tools/package-youer-server.js",
+    "generate:neoforge": "node tools/neoforge-distribution-generator.js",
+    "verify:neoforge-staging": "node tools/verify-neoforge-staging.js",
+    "configure:youer-runtime": "node tools/configure-youer-runtime.js",
+    "verify:youer-pre-eula": "node tools/verify-youer-stage.js",
     "dist": "electron-builder build",
     "dist:win": "npm run dist -- -w",
     "dist:mac": "npm run dist -- -m",
     "dist:linux": "npm run dist -- -l",
+    "serve:neoforge-staging": "node tools/serve-neoforge-staging.js",
     "lint": "eslint ."
   },
   "engines": {
-    "node": "22.x.x"
+    "node": ">=22.13.0"
   },
   "dependencies": {
     "@electron/remote": "^2.1.3",
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.0",
     "discord-rpc-patch": "^4.0.1",
-    "ejs": "^3.1.10",
-    "ejs-electron": "^3.0.0",
-    "electron-updater": "^6.7.3",
+    "ejs": "^6.0.1",
+    "electron-updater": "^6.8.9",
     "fs-extra": "^11.3.3",
     "github-syntax-dark": "^0.5.0",
     "got": "^11.8.5",
@@ -36,14 +49,25 @@
     "helios-distribution-types": "^1.3.0",
     "jquery": "^3.7.1",
     "lodash.merge": "^4.6.2",
+    "mime": "^3.0.0",
     "semver": "^7.7.3",
     "toml": "^3.0.0"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^5.6.1",
-    "electron": "^39.2.7",
-    "electron-builder": "^26.4.0",
-    "eslint": "^9.39.2"
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0"
+  },
+  "overrides": {
+    "discord-rpc-patch": {
+      "ws": "^8.21.0"
+    },
+    "brace-expansion": "^5.0.9",
+    "flatted": "^3.4.4",
+    "js-yaml": "^5.4.1"
   },
   "repository": {
     "type": "git",

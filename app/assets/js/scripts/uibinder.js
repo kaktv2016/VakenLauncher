@@ -6,12 +6,14 @@
 const path          = require('path')
 const { Type }      = require('helios-distribution-types')
 
-const AuthManager   = require('./assets/js/authmanager')
+const UIBinderAuthManager = require('./assets/js/authmanager')
 const ConfigManager = require('./assets/js/configmanager')
 const { DistroAPI } = require('./assets/js/distromanager')
+const { selectAvailableServer } = require('./assets/js/serverselection')
 
 let rscShouldLoad = false
 let fatalStartupError = false
+let startupDistributionHandled = false
 
 // Mapping of each view to their container IDs.
 const VIEWS = {
@@ -19,8 +21,7 @@ const VIEWS = {
     loginOptions: '#loginOptionsContainer',
     login: '#loginContainer',
     settings: '#settingsContainer',
-    welcome: '#welcomeContainer',
-    waiting: '#waitingContainer'
+    welcome: '#welcomeContainer'
 }
 
 // The currently shown view container.
@@ -65,7 +66,11 @@ async function showMainUI(data){
     }
 
     await prepareSettings(true)
-    updateSelectedServer(data.getServerById(ConfigManager.getSelectedServer()))
+    updateSelectedServer(selectAvailableServer(
+        data,
+        ConfigManager.getSelectedServer(),
+        process.env.HELIOS_SERVER_ID
+    ))
     refreshServerStatus()
     setTimeout(() => {
         document.getElementById('frameBar').style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
@@ -133,7 +138,11 @@ function showFatalStartupError(){
  * @param {Object} data The distro index object.
  */
 function onDistroRefresh(data){
-    updateSelectedServer(data.getServerById(ConfigManager.getSelectedServer()))
+    updateSelectedServer(selectAvailableServer(
+        data,
+        ConfigManager.getSelectedServer(),
+        process.env.HELIOS_SERVER_ID
+    ))
     refreshServerStatus()
     initNews()
     syncModConfigurations(data)
@@ -163,7 +172,7 @@ function syncModConfigurations(data){
             for(let mdl of mdls){
                 const type = mdl.rawModule.type
 
-                if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod){
+                if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod || type === Type.NeoForgeMod){
                     if(!mdl.getRequired().value){
                         const mdlID = mdl.getVersionlessMavenIdentifier()
                         if(modsOld[mdlID] == null){
@@ -198,7 +207,7 @@ function syncModConfigurations(data){
 
             for(let mdl of mdls){
                 const type = mdl.rawModule.type
-                if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod){
+                if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod || type === Type.NeoForgeMod){
                     if(!mdl.getRequired().value){
                         mods[mdl.getVersionlessMavenIdentifier()] = scanOptionalSubModules(mdl.subModules, mdl)
                     } else {
@@ -253,7 +262,7 @@ function scanOptionalSubModules(mdls, origin){
         for(let mdl of mdls){
             const type = mdl.rawModule.type
             // Optional types.
-            if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod){
+            if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod || type === Type.NeoForgeMod){
                 // It is optional.
                 if(!mdl.getRequired().value){
                     mods[mdl.getVersionlessMavenIdentifier()] = scanOptionalSubModules(mdl.subModules, mdl)
@@ -326,7 +335,7 @@ function mergeModConfiguration(o, n, nReq = false){
 async function validateSelectedAccount(){
     const selectedAcc = ConfigManager.getSelectedAccount()
     if(selectedAcc != null){
-        const val = await AuthManager.validateSelected()
+        const val = await UIBinderAuthManager.validateSelected()
         if(!val){
             ConfigManager.removeAuthAccount(selectedAcc.uuid)
             ConfigManager.save()
@@ -341,16 +350,9 @@ async function validateSelectedAccount(){
             )
             setOverlayHandler(() => {
 
-                const isMicrosoft = selectedAcc.type === 'microsoft'
-
-                if(isMicrosoft) {
-                    // Empty for now
-                } else {
-                    // Mojang
-                    // For convenience, pre-populate the username of the account.
-                    document.getElementById('loginUsername').value = selectedAcc.username
-                    validateEmail(selectedAcc.username)
-                }
+                // For convenience, pre-populate the local username.
+                document.getElementById('loginUsername').value = selectedAcc.username
+                validateLocalUsername(selectedAcc.username)
                 
                 loginOptionsViewOnLoginSuccess = getCurrentView()
                 loginOptionsViewOnLoginCancel = VIEWS.loginOptions
@@ -358,19 +360,13 @@ async function validateSelectedAccount(){
                 if(accLen > 0) {
                     loginOptionsViewOnCancel = getCurrentView()
                     loginOptionsViewCancelHandler = () => {
-                        if(isMicrosoft) {
-                            ConfigManager.addMicrosoftAuthAccount(
-                                selectedAcc.uuid,
-                                selectedAcc.accessToken,
-                                selectedAcc.username,
-                                selectedAcc.expiresAt,
-                                selectedAcc.microsoft.access_token,
-                                selectedAcc.microsoft.refresh_token,
-                                selectedAcc.microsoft.expires_at
-                            )
-                        } else {
-                            ConfigManager.addMojangAuthAccount(selectedAcc.uuid, selectedAcc.accessToken, selectedAcc.username, selectedAcc.displayName)
-                        }
+                        ConfigManager.addLocalAuthAccount(selectedAcc, {
+                            accessExpiresAt: selectedAcc.expiresAt,
+                            accessToken: selectedAcc.accessToken,
+                            refreshExpiresAt: selectedAcc.tokens.refreshExpiresAt,
+                            refreshToken: selectedAcc.tokens.refreshToken,
+                            sessionId: selectedAcc.tokens.sessionId
+                        })
                         ConfigManager.save()
                         validateSelectedAccount()
                     }
@@ -430,30 +426,54 @@ document.addEventListener('readystatechange', async () => {
             } else {
                 showFatalStartupError()
             }
-        } 
+        } else if(!startupDistributionHandled) {
+            // The preload can resolve a cached distribution before this
+            // renderer script registers its IPC listener. Recover that race
+            // by reading the same local distribution once the DOM is ready.
+            await handleDistributionIndexDone(true)
+        }
     }
 
 }, false)
 
-// Actions that must be performed after the distribution index is downloaded.
-ipcRenderer.on('distributionIndexDone', async (event, res) => {
-    if(res) {
-        const data = await DistroAPI.getDistribution()
-        syncModConfigurations(data)
-        ensureJavaSettings(data)
-        if(document.readyState === 'interactive' || document.readyState === 'complete'){
-            await showMainUI(data)
+async function handleDistributionIndexDone(res) {
+    if(startupDistributionHandled) {
+        return
+    }
+    startupDistributionHandled = true
+
+    try {
+        if(res) {
+            const data = await DistroAPI.getDistribution()
+            syncModConfigurations(data)
+            ensureJavaSettings(data)
+            if(document.readyState === 'interactive' || document.readyState === 'complete'){
+                await showMainUI(data)
+            } else {
+                rscShouldLoad = true
+            }
         } else {
-            rscShouldLoad = true
+            fatalStartupError = true
+            if(document.readyState === 'interactive' || document.readyState === 'complete'){
+                showFatalStartupError()
+            } else {
+                rscShouldLoad = true
+            }
         }
-    } else {
+    } catch(error) {
         fatalStartupError = true
+        loggerUICore.error('Unable to initialize the distribution UI.', error)
         if(document.readyState === 'interactive' || document.readyState === 'complete'){
             showFatalStartupError()
         } else {
             rscShouldLoad = true
         }
     }
+}
+
+// Actions that must be performed after the distribution index is downloaded.
+ipcRenderer.on('distributionIndexDone', async (event, res) => {
+    await handleDistributionIndexDone(res)
 })
 
 // Util for development

@@ -1,0 +1,42 @@
+{
+    "minecraftVersion": "1.21.1",
+    "javaMajor": 21,
+    "youer": {
+        "repository": "https://github.com/MohistMC/Youer",
+        "commit": "2ddc7e32f310d1ae331a70067bba21912182bc6e",
+        "build": "2ddc7e32",
+        "variant": "axiomfix",
+        "localPatch": "Make the NetworkRegistry missing-payload warning unconditional so the Forgified Fabric API codec injection executes in production builds.",
+        "serverJar": "youer-1.21.1-2ddc7e32-axiomfix-server.jar",
+        "serverJarSize": 128307351,
+        "serverJarSha256": "e35eb56b67b180b0d44a24b8e9909af764b56d79114f245f613717e6ec29d0bd"
+    },
+    "neoForge": {
+        "version": "21.1.248",
+        "installerUrl": "https://maven.neoforged.net/releases/net/neoforged/neoforge/21.1.248/neoforge-21.1.248-installer.jar",
+        "installerName": "neoforge-21.1.248-installer.jar",
+        "installerSize": 6972104,
+        "installerSha256": "68eeab77059ba53df1812f1afa5bf530ab2566a3cdcd5f924aa6e71be42e410c"
+    },
+    "authMe": {
+        "version": "6.0.0",
+        "variant": "Spigot-Legacy",
+        "releaseUrl": "https://github.com/AuthMe/AuthMeReloaded/releases/tag/6.0.0",
+        "assetUrl": "https://github.com/AuthMe/AuthMeReloaded/releases/download/6.0.0/AuthMe-6.0.0-Spigot-Legacy.jar",
+        "jarName": "AuthMe-6.0.0-Spigot-Legacy.jar",
+        "jarSize": 1097642,
+        "jarSha256": "7fcf370763d02528eabbe4418e6bbe7e5d5e6a8f8cbead31ef954877a8b0f1a2"
+    },
+    "packetEvents": {
+        "version": "2.13.0",
+        "releaseUrl": "https://github.com/retrooper/packetevents/releases/tag/v2.13.0",
+        "assetUrl": "https://github.com/retrooper/packetevents/releases/download/v2.13.0/packetevents-spigot-2.13.0.jar",
+        "jarName": "packetevents-spigot-2.13.0.jar",
+        "jarSize": 5333748,
+        "jarSha256": "6d9ece0d87ee727a79a20b7ffbd432021609c6f52bafcb654fc2d3e9b6f064c5"
+    },
+    "helios": {
+        "companionJar": "helios_sso-0.1.0.jar",
+        "bridgeJar": "youer-authme-bridge-0.1.0.jar"
+    }
+}
