@@ -21,8 +21,9 @@ repository URL.
 1. Choose the public GitHub repository that will host player releases.
 2. Set `updateRepository` to the HTTPS repository URL, for example
    `https://github.com/OWNER/REPOSITORY`.
-3. Configure a Windows release workflow to build and attach the installer,
-   blockmap, and `latest.yml` to each versioned GitHub Release.
+3. The Windows release workflow in `.github/workflows/release-windows.yml`
+   builds and attaches the installer, blockmap, and `latest.yml` when a matching
+   `vX.Y.Z` tag is pushed.
 4. Configure Windows code signing before distributing the installer publicly.
 
 Never commit GitHub tokens, code-signing certificates, TLS keys, database files,

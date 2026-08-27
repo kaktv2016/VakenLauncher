@@ -1,0 +1,47 @@
+name: Release Windows launcher
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify tag matches package version
+        run: node -e "const p=require('./package.json'); if(process.env.GITHUB_REF_NAME !== `v${p.version}`) throw new Error(`Tag ${process.env.GITHUB_REF_NAME} does not match package version ${p.version}`)"
+
+      - name: Verify launcher
+        run: |
+          npm run lint
+          npm test
+
+      - name: Build Windows installer
+        run: npm run dist:win
+
+      - name: Publish GitHub Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create $env:GITHUB_REF_NAME
+          "dist/VakenLauncher-setup-*.exe"
+          "dist/VakenLauncher-setup-*.exe.blockmap"
+          "dist/latest.yml"
+          --verify-tag
+          --generate-notes
