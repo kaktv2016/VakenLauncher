@@ -9,6 +9,7 @@ test('builds Windows installers and executables as VakenLauncher', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
     const builder = fs.readFileSync(path.join(root, 'electron-builder.yml'), 'utf8')
     const customLanguage = fs.readFileSync(path.join(root, 'app', 'assets', 'lang', '_custom.toml'), 'utf8')
+    const landing = fs.readFileSync(path.join(root, 'app', 'landing.ejs'), 'utf8')
 
     assert.equal(manifest.name, 'vakenlauncher')
     assert.equal(manifest.productName, 'VakenLauncher')
@@ -16,4 +17,8 @@ test('builds Windows installers and executables as VakenLauncher', () => {
     assert.match(builder, /^productName: 'VakenLauncher'$/m)
     assert.match(builder, /^artifactName: '\$\{productName\}-setup-\$\{version\}\.\$\{ext\}'$/m)
     assert.match(customLanguage, /^title = "VakenLauncher"$/m)
+    assert.match(landing, /id="landingBrandLogo" src="assets\/images\/VarkenLogo\.png"/)
+    assert.ok(fs.statSync(path.join(root, 'app', 'assets', 'images', 'VarkenLogo.png')).size > 100_000)
+    assert.ok(fs.statSync(path.join(root, 'app', 'assets', 'images', 'SealCircle.png')).size > 100_000)
+    assert.ok(fs.statSync(path.join(root, 'build', 'icon.png')).size > 100_000)
 })

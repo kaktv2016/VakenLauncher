@@ -1,4 +1,4 @@
-<p align="center"><img src="./app/assets/images/SealCircle.png" width="150px" height="150px" alt="aventium softworks"></p>
+<p align="center"><img src="./app/assets/images/VarkenLogo.png" width="520px" alt="Varken: The Shattered Throne"></p>
 
 <h1 align="center">VakenLauncher</h1>
 

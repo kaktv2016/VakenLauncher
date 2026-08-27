@@ -278,19 +278,7 @@ function createMenu() {
 }
 
 function getPlatformIcon(filename){
-    let ext
-    switch(process.platform) {
-        case 'win32':
-            ext = 'ico'
-            break
-        case 'darwin':
-        case 'linux':
-        default:
-            ext = 'png'
-            break
-    }
-
-    return path.join(__dirname, 'app', 'assets', 'images', `${filename}.${ext}`)
+    return path.join(__dirname, 'app', 'assets', 'images', `${filename}.png`)
 }
 
 app.on('ready', createWindow)
